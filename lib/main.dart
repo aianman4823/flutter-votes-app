@@ -51,11 +51,75 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List votesList = List();
+  String name = "";
+  num votes = 0;
+  String id = '0';
+
+  createVotes() {
+    DocumentReference documentReference =
+        FirebaseFirestore.instance.collection('Votes').doc(id);
+
+    // Map
+    Map<String, dynamic> votesList = {"name": name, "votes": votes, "id": id};
+
+    documentReference.set(votesList).whenComplete(() {
+      print("$name $votes $id created");
+    });
+
+    try {
+      num numId = int.parse(id);
+      id = (numId + 1).toString();
+      name = "";
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  deleteTodos(item) {
+    DocumentReference documentReference =
+        FirebaseFirestore.instance.collection('Votes').doc(item);
+
+    documentReference.delete().whenComplete(() {
+      print("deleted");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Vote App'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                title: Text("Add Votelist"),
+                content: TextField(
+                  onChanged: (String value) {
+                    name = value;
+                  },
+                ),
+                actions: <Widget>[
+                  FlatButton(
+                      onPressed: () {
+                        createVotes();
+
+                        Navigator.of(context).pop();
+                      },
+                      child: Text("Add"))
+                ],
+              );
+            },
+          );
+        },
+        child: Icon(Icons.add, color: Colors.white),
       ),
       body: _buildBody(context),
     );
@@ -83,7 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
     final record = Record.fromSnapshot(data);
-
     return Padding(
       key: ValueKey(record.name),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -93,6 +156,16 @@ class _MyHomePageState extends State<MyHomePage> {
           borderRadius: BorderRadius.circular(5.0),
         ),
         child: ListTile(
+            leading: IconButton(
+              icon: Icon(
+                Icons.delete,
+                color: Colors.red,
+              ),
+              onPressed: () {
+                print(data.get('id'));
+                deleteTodos(data.get('id'));
+              },
+            ),
             title: Text(record.name),
             trailing: Text(record.votes.toString()),
             // onTap: () => print(record),
